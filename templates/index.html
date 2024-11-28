@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatWizard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap">
+    <style>
+        body {
+            background-color: #dae2e8;
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            width: 900px;
+            margin: 30px auto;
+            background-color: white;
+            padding: 20px;
+            padding-top: 3px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 500;
+            color: #ECECEC;
+            background-color: #04498a;
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+            clear: both;
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+        }
+
+        .user-message {
+            background-color: #89B4DA;
+            color: white;
+            float: right;
+            text-align: left;
+            justify-content: flex-end;
+        }
+        
+        .fa-user{
+            margin-left: 10px;
+        }
+
+        .assistant-message {
+        background-color: #175E9F;
+        color: white;
+        float: left;
+        text-align: left;
+        display: flex; /* Ensures the icon and text are aligned properly */
+        align-items: center; /* Vertically align the icon with the text */
+        padding: 15px; /* Add padding around the content */
+        border-radius: 10px;
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+
+    .assistant-message img {
+        margin-right: 10px; /* Add spacing between the icon and text */
+        border-radius: 50%; /* Optional: make the image circular */
+        width: 40px;
+        height: 40px;
+    }
+
+    .assistant-message span {
+        display: inline-block;
+        flex: 1;
+    }
+
+        .message img {
+            margin-right: 10px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+        }
+
+        .clear {
+            clear: both;
+        }
+
+        .feedback {
+            margin-top: 5px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .feedback-icon {
+            cursor: pointer;
+            font-size: 18px;
+            color: #edf1f5;
+            transition: transform 0.2s, color 0.2s;
+        }
+
+        .feedback-icon:hover {
+            transform: scale(1.2);
+            color: #63aaec;
+        }
+
+        .feedback-icon.active {
+            color: #175E9F;
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            padding: 10px;
+            border-top: 2px solid #dae2e8;
+            display: flex;
+            align-items: center;
+            width: 920px;
+            margin: auto;
+        }
+
+        .input-container input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 2px solid #5088b9;
+            border-radius: 20px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-container input:focus {
+            border-color: #1d6db7;
+        }
+
+        .input-container button {
+            padding: 10px 20px;
+            background-color: #5088b9;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            margin-left: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .input-container button:hover {
+            background-color: #1d6db7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <h1><i class="fas fa-comments"></i> Chat with ChatWizard </h1>
+
+        <div id="chat-box">
+            {% for msg in conversation %}
+            <div class="message {% if msg.sender == 'user' %}user-message{% else %}assistant-message{% endif %}">
+                {% if msg.sender == 'user' %}
+                {{ msg.message }}<i class="fas fa-user"></i>
+                {% else %}
+                <img src="{{ url_for('static', filename='sanlam_logo.png') }}" alt="Assistant">
+                {{ msg.message }}
+                <div class="feedback">
+                    <i class="fas fa-thumbs-up feedback-icon" data-feedback="like"></i>
+                    <i class="fas fa-thumbs-down feedback-icon" data-feedback="dislike"></i>
+                </div>
+                {% endif %}
+            </div>
+            <div class="clear"></div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="input-container">
+        <input type="text" id="user-input" placeholder="Type your message...">
+        <button id="send-btn">Send</button>
+    </div>
+
+    <script>
+        document.getElementById("send-btn").addEventListener("click", sendMessage);
+
+        document.getElementById("user-input").addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            var userInput = document.getElementById("user-input").value;
+            if (userInput.trim() !== "") {
+                var chatBox = document.getElementById("chat-box");
+                var userMessageDiv = document.createElement("div");
+                userMessageDiv.className = "message user-message";
+                userMessageDiv.innerHTML = userInput + "<i class='fas fa-user'></i> ";
+                chatBox.appendChild(userMessageDiv);
+                chatBox.appendChild(document.createElement("div")).className = "clear";
+
+                fetch("/get_response", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: userInput })
+                }).then(response => response.json()).then(data => {
+                    if (data.status === "success") {
+                        var assistantMessageDiv = document.createElement("div");
+                        assistantMessageDiv.className = "message assistant-message";
+
+                        // Add the image and typing container
+                        assistantMessageDiv.innerHTML = `
+                            <img src='/static/sanlam_logo.png' alt='Assistant'>
+                            <span></span>
+                        `;
+
+                        chatBox.appendChild(assistantMessageDiv);
+                        chatBox.appendChild(document.createElement("div")).className = "clear";
+
+                        // Typing effect
+                        var fullMessage = data.message;
+                        var i = 0;
+                        var messageSpan = assistantMessageDiv.querySelector("span");
+
+                        function typeWriter() {
+                            if (i < fullMessage.length) {
+                                messageSpan.textContent += fullMessage.charAt(i);
+                                i++;
+                                setTimeout(typeWriter, 50);
+                            } else {
+                                // Add feedback icons after the typing is done
+                                var feedbackDiv = document.createElement("div");
+                                feedbackDiv.className = "feedback";
+                                feedbackDiv.innerHTML = `
+                                    <i class="fas fa-thumbs-up feedback-icon" data-feedback="like"></i>
+                                    <i class="fas fa-thumbs-down feedback-icon" data-feedback="dislike"></i>
+                                `;
+                                assistantMessageDiv.appendChild(feedbackDiv);
+                            }
+                        }
+                        typeWriter();
+                    }
+                });
+
+                // Clear the input field
+                document.getElementById("user-input").value = "";
+            }
+        }
+
+        document.getElementById("chat-box").addEventListener("click", function (event) {
+            if (event.target.classList.contains("feedback-icon")) {
+                const feedbackType = event.target.getAttribute("data-feedback");
+                const messageElement = event.target.closest(".assistant-message");
+                const assistantMessage = messageElement.querySelector("span").textContent.trim();
+
+                messageElement.querySelectorAll(".feedback-icon").forEach(icon => icon.classList.remove("active"));
+                event.target.classList.add("active");
+
+                fetch("/submit_feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: assistantMessage, feedback: feedbackType })
+            }).then(response => response.json()).then(data => {
+                if (data.status === "success") {
+                console.log("Feedback submitted successfully!");
+            }
+        }).catch(error => console.error("Error:", error));
+            }
+        });
+    </script>
+</body>
+
+</html>
